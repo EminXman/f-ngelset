@@ -1,6 +1,9 @@
 import time
 import random
 
+# Global variabel för att hålla reda på spelarens framsteg
+current_room = None
+
 def main_menu():
     print("\n*** Välkommen till 'Fly från fängelsen'! ***\n")
     print("1. Börja spelet")
@@ -20,19 +23,25 @@ def main_menu():
         main_menu()
 
 def show_instructions():
-    print("\n*** Instruktioner ***\n")
-    print("'Fly från fängelsen' är ett textbaserat äventyrsspel. Utforska rum, lös gåtor och ta kloka beslut för att lyckas fly.")
-    print("Du kommer att möta utmaningar och hinder. Tänk strategiskt för att vinna!")
-    input("\nTryck på Enter för att återgå till huvudmenyn.")
-    main_menu()
+ filnamn = "README.TXT"
+
+with open("r", encoding="utf-8") as fil:
+
+        innehåll = fil.read()
+
+        print(innehåll)
 
 def start_game():
+    global current_room
+    current_room = cell_room
     print("\n*** Spelet börjar! ***\n")
     print("Du vaknar i en mörk fängelsecell. Du har 24 timmar på dig att fly innan vakterna flyttar dig till ett högsäkerhetsfängelse.")
     time.sleep(2)
     cell_room()
 
 def cell_room():
+    global current_room
+    current_room = cell_room
     print("\nRum: Fängelsecellen")
     print("Vad vill du göra?")
     print("1. Undersöka sängen")
@@ -58,48 +67,57 @@ def cell_room():
         cell_room()
 
 def corridor_room(tool):
+    global current_room
+    current_room = lambda: corridor_room(tool)
     print("\nRum: Korridoren")
     print("Du har lyckats ta dig ut ur cellen och befinner dig nu i en lång korridor.")
     print("Vad vill du göra?")
     print("1. Smyga förbi vakter")
     print("2. Försöka hitta ett förråd")
+    print("3. Gå in i vaktrummet")
 
-    choice = input("Välj ett alternativ (1/2): ")
+    choice = input("Välj ett alternativ (1/2/3): ")
 
     if choice == "1":
         if random.choice([True, False]):
             print("\nDu smyger förbi vakterna utan att bli upptäckt.")
-            armory_room(tool)
+            laundry_room(tool)
         else:
             print("\nEn vakt upptäcker dig. Du fångas och förs tillbaka till cellen.")
-            caught_by_guard()
+            restart_from_last_checkpoint()
     elif choice == "2":
         print("\nDu hittar ett förråd med användbara föremål.")
-        armory_room(tool)
+        laundry_room(tool)
+    elif choice == "3":
+        guard_room(tool)
     else:
         print("Ogiltigt val. Försök igen.")
         corridor_room(tool)
 
-def armory_room(tool):
-    print("\nRum: Förrådsrummet")
-    print("Du ser flera verktyg och en dörr som leder vidare.")
+def laundry_room(tool):
+    global current_room
+    current_room = lambda: laundry_room(tool)
+    print("\nRum: Tvätteriet")
+    print("Du befinner dig nu i tvätteriet. Här finns det många gömställen.")
     print("Vad vill du göra?")
-    print("1. Ta ett rep och en kofot")
-    print("2. Gå vidare utan att ta något")
+    print("1. Gömma dig i en tvättkorg")
+    print("2. Leta efter något användbart")
 
     choice = input("Välj ett alternativ (1/2): ")
 
     if choice == "1":
-        print("\nDu tar med dig verktygen. Dessa kan komma till nytta senare.")
-        kitchen_room(has_tools=True)
+        print("\nDu gömmer dig i en tvättkorg och väntar tills vakterna går förbi.")
+        kitchen_room(tool)
     elif choice == "2":
-        print("\nDu lämnar förrådet utan att ta något.")
-        kitchen_room(has_tools=False)
+        print("\nDu hittar en uniform som kan hjälpa dig att smälta in.")
+        kitchen_room(tool)
     else:
         print("Ogiltigt val. Försök igen.")
-        armory_room(tool)
+        laundry_room(tool)
 
-def kitchen_room(has_tools):
+def kitchen_room(tool):
+    global current_room
+    current_room = lambda: kitchen_room(tool)
     print("\nRum: Köket")
     print("Du går in i ett kök där vakterna brukar äta.")
     print("Vad vill du göra?")
@@ -110,19 +128,34 @@ def kitchen_room(has_tools):
 
     if choice == "1":
         print("\nDu gömmer dig och lyckas undvika vakterna.")
-        garage_room(has_tools)
+        garage_room(tool)
     elif choice == "2":
         if random.choice([True, False]):
             print("\nDu lyckas stjäla nycklarna utan att bli upptäckt.")
-            garage_room(has_tools)
+            garage_room(tool)
         else:
             print("\nVakterna upptäcker dig. Du fångas.")
             caught_by_guard()
     else:
         print("Ogiltigt val. Försök igen.")
-        kitchen_room(has_tools)
+        kitchen_room(tool)
 
-def garage_room(has_tools):
+def guard_room(tool):
+    global current_room
+    current_room = lambda: guard_room(tool)
+    print("\nRum: Vaktrummet")
+    print("Du smyger in i vaktrummet och ser en uniform och ett nyckelkort. För att öppna skåpet med dem, måste du lösa en ekvation.")
+    answer = input("Lös: 12 + 8 × 2 = ")
+    if answer == "28":
+        print("\nRätt! Du tar uniformen och nyckelkortet. Nu kan du röra dig fritt utan att vakterna misstänker dig!")
+        laundry_room(tool)
+    else:
+        print("\nFel svar! Du hinner inte öppna skåpet innan du hör steg utanför. Du lämnar rummet snabbt.")
+        restart_from_last_checkpoint()
+
+def garage_room(tool):
+    global current_room
+    current_room = lambda: garage_room(tool)
     print("\nRum: Garaget")
     print("Du står nu i garaget, där det finns fordon att använda för flykten.")
     print("Vad vill du göra?")
@@ -132,7 +165,7 @@ def garage_room(has_tools):
     choice = input("Välj ett alternativ (1/2): ")
 
     if choice == "1":
-        if has_tools:
+        if tool:
             print("\nDu använder verktygen för att starta bilen och kör iväg. Du är fri!")
             end_game(success=True)
         else:
@@ -143,7 +176,7 @@ def garage_room(has_tools):
         end_game(success=True)
     else:
         print("Ogiltigt val. Försök igen.")
-        garage_room(has_tools)
+        garage_room(tool)
 
 def caught_by_guard():
     print("\nVakten fångar dig och spelet är över.")
@@ -160,6 +193,10 @@ def end_game(success):
     else:
         print("Tack för att du spelade 'Fly från fängelsen'! Hej då!")
 
+def restart_from_last_checkpoint():
+    print("\nDu har förlorat, men du kan återuppta från ditt senaste val.")
+    time.sleep(2)
+    current_room()
+
 # Starta spelet
 main_menu()
-
